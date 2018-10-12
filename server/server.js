@@ -1,6 +1,7 @@
 require('./config/config');
 
 const _ = require('lodash');
+const cors = require('cors');
 const express = require('express');
 const bodyParser = require('body-parser');
 const { ObjectID } = require('mongodb');
@@ -8,11 +9,13 @@ const { ObjectID } = require('mongodb');
 const { mongoose } = require('./db/mongoose');
 const { Todo } = require('./models/todo');
 const { User } = require('./models/user');
+const { authenticate } = require('./middleware/authenticate');
 
 const app = express();
 const port = process.env.PORT;
 
 app.use(bodyParser.json());
+app.use(cors());
 
 app.post('/todos', (req, res) => {
     const todo = new Todo({
@@ -94,10 +97,12 @@ app.patch('/todos/:id', (req, res) => {
     });
 });
 
+app.get('/users/me', authenticate, (req, res) => {
+    res.send(req.user);
+});
+
 app.post('/users', (req, res) => {
     let user = new User(_.pick(req.body, ['email', 'password']));
-
-
 
     user.save().then(() => {
         return user.generateAuthToken();
@@ -107,6 +112,7 @@ app.post('/users', (req, res) => {
         res.status(400).send(e);
     });
 });
+
 
 app.listen(port, () => {
     console.log(`Started up at port ${port}`);
